@@ -28,10 +28,29 @@ public class Panel extends JPanel {
     private double aspect = (double) Main.WIDTH / Main.HEIGHT;
     private double fov = Math.toRadians(70);
 
+
+    private Matrix translation = new Matrix(new double[][]{
+            {1, 0, 0, 100},
+            {0, 1, 0, 0},
+            {0, 0, 1, 0},
+            {0, 0, 0, 1},
+    });
+
+    private Matrix p = new Matrix(new double[][]{
+            {1 / (aspect * Math.tan(fov / 2)), 0, 0, 0},
+            {0, 1 / Math.tan(fov / 2), 0, 0},
+            {0, 0, -(farZ + nearZ) / (farZ - nearZ), -2 * farZ * nearZ / (farZ - nearZ)},
+            {0, 0, -1, 0}
+    });
+
+    private Matrix r;
+
     public Panel(int width, int height) {
         setPreferredSize(new Dimension(width, height));
         img = new BufferedImage(Main.WIDTH, Main.HEIGHT, BufferedImage.TYPE_INT_RGB);
         g2 = img.createGraphics();
+
+        r = translation.mult(Matrix.rz(this.rz).mult(Matrix.ry(this.ry)).mult(Matrix.rx(this.rx)));
 
         addMouseListener(new MouseListener() {
             @Override
@@ -41,9 +60,9 @@ public class Panel extends JPanel {
 
             @Override
             public void mousePressed(MouseEvent e) {
-                if(e.isShiftDown()) {
+                if (e.isShiftDown()) {
                     p = p.scale(1.5);
-                } else if(e.isControlDown()) {
+                } else if (e.isControlDown()) {
                     p = p.scale(0.667);
                 } else {
                     clickX = e.getXOnScreen();
@@ -70,7 +89,7 @@ public class Panel extends JPanel {
         addMouseMotionListener(new MouseMotionListener() {
             @Override
             public void mouseDragged(MouseEvent e) {
-                System.out.println(ry);
+                //System.out.println(ry);
                 ry -= (clickX - e.getXOnScreen()) / (Main.WIDTH / 2.0) * 180;
                 rx -= (clickY - e.getYOnScreen()) / (Main.HEIGHT / 2.0) * 180;
 
@@ -86,92 +105,63 @@ public class Panel extends JPanel {
 
     }
 
-    private Matrix p = new Matrix(new double[][]{
-            {1 / (aspect * Math.tan(fov / 2)), 0, 0, 0},
-            {0, 1 / Math.tan(fov / 2), 0, 0},
-            {0, 0, -(farZ + nearZ) / (farZ - nearZ), -2 * farZ * nearZ / (farZ - nearZ)},
-            {0, 0, -1, 0}
-    });
-    private Matrix translation = new Matrix(new double[][]{
-            {1, 0, 0, 100},
-            {0, 1, 0, 0},
-            {0, 0, 1, 0},
-            {0, 0, 0, 1},
-    });
-
-    double theta = 0;
-    @Override
-    protected void paintComponent(Graphics g) {
-        g2.setColor(Color.BLACK);
-        g2.fillRect(0, 0, Main.WIDTH, Main.HEIGHT);
-
-
-        Matrix rx = Matrix.rx(this.rx);
-        Matrix ry = Matrix.ry(this.ry);
-        Matrix rz = Matrix.rz(this.rz);
-        Matrix r = translation.mult(rz.mult(ry).mult(rx));
-
-
+    public void drawAxis() {
         g2.setColor(Color.BLUE);
         for (double x = -150; x < 150; x += 1)
-            draw(g2, p.mult(r.mult(new Vector(new double[]{x, 0, 0, 1}))));
+            draw(g2, new Vector(new double[]{x, 0, 0, 1}));
 
         g2.setColor(Color.RED);
         for (double y = -150; y < 150; y += 1)
-            draw(g2, p.mult(r.mult(new Vector(new double[]{0, y, 0, 1}))));
+            draw(g2, new Vector(new double[]{0, y, 0, 1}));
 
         g2.setColor(Color.GREEN);
         for (double z = -150; z < 150; z += 1)
-            draw(g2, p.mult(r.mult(new Vector(new double[]{0, 0, z, 1}))));
+            draw(g2, new Vector(new double[]{0, 0, z, 1}));
 
-        /*g2.setColor(Color.WHITE);
-        for (double x = xStart; x < xEnd; x += stepX) {
-            for (double y = yStart; y < yEnd; y += stepY) {
-                for (double z = yStart; z < yEnd; z += stepY) {
-                    double fun = f(Algorithm.SPHERE, x, y, z);
-                    if (Math.abs(fun) < 100 * 100 && Math.abs(fun) > 100 * 100 - 100)
-                        draw(g2, p.mult(r.mult(new Vector(new double[]{x, y, z, 1}))));
-                }
+        for (double theta = 0; theta < Math.PI * 2; theta += Math.PI / 10) {
+            for (double rho = 0; rho < Math.PI; rho += Math.PI / 10) {
+                double x = f(Algorithm.SPHERE_X, 5, theta, rho);
+                double y = f(Algorithm.SPHERE_Y, 5, theta, rho);
+                double z = f(Algorithm.SPHERE_Z, 5, 0, rho);
+                g2.setColor(Color.BLUE);
+                draw(g2, new Vector(new double[]{150 + x, y, z, 1}));
+                g2.setColor(Color.RED);
+                draw(g2, new Vector(new double[]{x, y - 150, z, 1}));
+                g2.setColor(Color.GREEN);
+                draw(g2, new Vector(new double[]{x, y, z + 150, 1}));
             }
-        }*/
 
-        for (double x = -5; x < 5; x += 1) {
-            for (double y = -5; y < 5; y += 1) {
-                for (double z = -5; z < 5; z += 1) {
-                    double fun = f(Algorithm.SPHERE, x, y, z);
-                    if (Math.abs(fun) < 25 && Math.abs(fun) > 15) {
-                        g2.setColor(Color.BLUE);
-                        draw(g2, p.mult(r.mult(new Vector(new double[]{150 + x, y, z, 1}))));
-                        g2.setColor(Color.RED);
-                        draw(g2, p.mult(r.mult(new Vector(new double[]{x, y - 150, z, 1}))));
-                        g2.setColor(Color.GREEN);
-                        draw(g2, p.mult(r.mult(new Vector(new double[]{x, y, z + 150, 1}))));
-                    }
-                }
-            }
         }
+    }
 
-        theta += 0.2;
-        g2.setColor(new Color(255, 0, 255, 200));
-        for (double x = -200; x < 200; x += 5) {
-            for (double y = -200; y < 200; y += 2) {
-                //for (double z = -100; z < 100; z += 20)
-                    draw(g2, p.mult(r.mult(new Vector(new double[] {x, y, (Math.cos(x / 10 + theta) - Math.cos(theta/4 - (x + y) / 100) * 3 + Math.sin(y / 10 + theta)) * 10, 1}))));
-            }
-        }
+    public void updateCamera() {
+        Matrix rx = Matrix.rx(this.rx);
+        Matrix ry = Matrix.ry(this.ry);
+        Matrix rz = Matrix.rz(this.rz);
+        r = translation.mult(rz.mult(ry).mult(rx));
+    }
 
-        /*for(double s = -5; s < 5; s += .1) {
-            for(double t = -5; t < 5; t += .1) {
-                if(!(0 < s + t && s + t < 1)) continue;
-                g2.setColor(Color.CYAN);
-                draw(g2, p.mult(r.mult(new Vector(new double[] {1 + s, 2 + t, 0, 1}))), 4, 5);
-                draw(g2, p.mult(r.mult(new Vector(new double[] {2 + s, 3 + t, 0, 1}))), 4, 5);
-                draw(g2, p.mult(r.mult(new Vector(new double[] {-1 + s, -1 + t, 0, 1}))), 4, 5);
-            }
-        }*/
+    public void clear() {
+        g2.setColor(Color.BLACK);
+        g2.fillRect(0, 0, Main.WIDTH, Main.HEIGHT);
+    }
 
+    public void finish(Graphics g) {
         g.drawImage(img, 0, 0, null);
         repaint();
+    }
+
+    @Override
+    protected void paintComponent(Graphics g) {
+        clear();
+        updateCamera();
+        drawAxis();
+
+        g2.setColor(new Color(255, 0, 255, 200));
+        Ball b = new Ball(50, -50, 0, 10, 50);
+        b.draw(g2);
+
+        finish(g);
     }
 
     enum Algorithm {
@@ -181,24 +171,30 @@ public class Panel extends JPanel {
         SPHERE_X,
         SPHERE_Y,
         SPHERE_Z,
+        CYL_X,
+        CYL_Y,
     }
 
-    public double f(Algorithm a, double x, double y, double z) {
-        switch (a) {
+    public double f(Algorithm algorithm, double a, double b, double c) {
+        switch (algorithm) {
             case SPHERE:
-                return x * x + y * y + z * z;
+                return a * a + b * b + c * c;
             case CLASS:
-                return x * x - 2 * x * y;
+                return a * a - 2 * a * b;
             case CLASS2:
-                return y*y - x*x*x - x*x;
+                return b * b - a * a * a - a * a;
             case SPHERE_X:
-                return x * Math.sin(z) * Math.cos(y);
+                return a * Math.sin(c) * Math.cos(b);
             case SPHERE_Y:
-                return x * Math.sin(z) * Math.sin(y);
+                return a * Math.sin(c) * Math.sin(b);
             case SPHERE_Z:
-                return x * Math.cos(z);
+                return a * Math.cos(c);
+            case CYL_X:
+                return a * Math.cos(b);
+            case CYL_Y:
+                return a * Math.sin(b);
         }
-        return x + y + z;
+        return a + b + c;
     }
 
     private int alpha(double z) {
@@ -207,13 +203,56 @@ public class Panel extends JPanel {
     }
 
     public void draw(Graphics g, Vector p) {
+        p = this.p.mult(r.mult(p));
         double[] point = p.vector;
         int size = 1;
         g.fillRect((int) point[0] + Main.WIDTH / 2, (int) point[1] + Main.HEIGHT / 2, size, size);
     }
+
     public void draw(Graphics g, Vector p, int size, double spacing) {
+        p = this.p.mult(r.mult(p));
         double[] point = p.vector;
         g.fillRect((int) (point[0] * spacing) + Main.WIDTH / 2, (int) (point[1] * spacing) + Main.HEIGHT / 2, size, size);
+    }
+
+    class Ball {
+
+        private double x, y, z, r;
+        private Vector pos;
+        private Vector[][] points;
+
+
+        public Ball(double x, double y, double z, double r, int resolution) {
+            this.x = x;
+            this.y = y;
+            this.z = z;
+            this.r = r;
+            pos = new Vector(new double[]{x, y, z, 1});
+            points = new Vector[resolution][resolution / 2];
+
+            int i = 0, j;
+            for (double theta = 0; i < resolution; theta += Math.PI * 2 / resolution, i++) {
+                j = 0;
+                for (double phi = 0; j < resolution / 2; phi += Math.PI * 2 / resolution, j++) {
+                    points[i][j] = new Vector(new double[]{
+                            Panel.this.f(Algorithm.SPHERE_X, r, theta, phi) + x,
+                            Panel.this.f(Algorithm.SPHERE_Y, r, theta, phi) + y,
+                            Panel.this.f(Algorithm.SPHERE_Z, r, 0, phi) + z,
+                            1
+                    });
+                }
+            }
+        }
+
+        public Ball() {
+            this(0, 0, 0, 10, 100);
+        }
+
+        public void draw(Graphics g) {
+            for (Vector[] vv : points)
+                for (Vector v : vv)
+                    Panel.this.draw(g, v);
+        }
     }
 
 }
