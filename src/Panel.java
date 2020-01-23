@@ -4,6 +4,7 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 import java.awt.image.BufferedImage;
+import java.util.Random;
 
 public class Panel extends JPanel {
 
@@ -45,10 +46,27 @@ public class Panel extends JPanel {
 
     private Matrix r;
 
+    private Ball[] balls;
+
     public Panel(int width, int height) {
         setPreferredSize(new Dimension(width, height));
         img = new BufferedImage(Main.WIDTH, Main.HEIGHT, BufferedImage.TYPE_INT_RGB);
         g2 = img.createGraphics();
+
+        balls = new Ball[5];
+
+        Random rdm = new Random();
+
+        for (int i = 0; i < balls.length; i++) {
+            double size = rdm.nextInt(20) + 10;
+            balls[i] = new Ball(
+                    rdm.nextInt(200) - 100,
+                    rdm.nextInt(200) - 100,
+                    rdm.nextInt(200) - 100,
+                    size,
+                    (int) size
+            );
+        }
 
         r = translation.mult(Matrix.rz(this.rz).mult(Matrix.ry(this.ry)).mult(Matrix.rx(this.rx)));
 
@@ -151,15 +169,22 @@ public class Panel extends JPanel {
         repaint();
     }
 
+
+    double c = 0;
     @Override
     protected void paintComponent(Graphics g) {
         clear();
         updateCamera();
         drawAxis();
 
-        g2.setColor(new Color(255, 0, 255, 200));
-        Ball b = new Ball(50, -50, 0, 10, 50);
-        b.draw(g2);
+        rx += 0.4;
+        ry += 0.2;
+        rz += 0.7;
+        c += 0.2;
+
+        g2.setColor(new Color(255, (int) c % 255, 255 - (int) (c / 10) % 255, 200));
+        for (Ball b : balls)
+            b.draw(g2);
 
         finish(g);
     }

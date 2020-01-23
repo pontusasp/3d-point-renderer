@@ -3,8 +3,8 @@ import java.awt.*;
 
 public class Main {
 
-    public static final int WIDTH = 500;
-    public static final int HEIGHT = 500;
+    public static final int WIDTH = 1000;
+    public static final int HEIGHT = 1000;
 
     private JFrame frame;
     private Panel panel;
